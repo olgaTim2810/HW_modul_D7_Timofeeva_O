@@ -1,0 +1,79 @@
+<!--  наследуемся от шаблона default.html, который мы создавали для flatpages -->
+{% extends 'flatpages/default.html' %}
+{% load custom_tags %}
+{% load custom_filters %}
+
+{% block title %}
+News
+{% endblock title %}
+
+{% block content %}
+<h1>Новости категории {{ category }}</h1>
+{% if 'is_not_subscriber' %}
+<p class='text-center'><a href="{% url 'subscribe' category.id %}" class="btn btn-secondary btn-sn">Подписаться</a></p>
+{% endif %}
+<hr>
+
+ <h3>{{ time_now|date:'d M Y' }}</h3>
+<h3> {{ next_post|default_if_none:"Чуть позже сообщим о свежих новостях!" }} </h3>
+{# Теперь будем проверять не request.user.is_authenticated, а конкретные права #}
+{% if perms.news.add_post %}
+    <a href="{% url 'post_create' %}">Добавить пост</a>
+{% endif %}
+
+{% if category_news_list %}
+<table>
+           <tr>
+               <td>Заголовок</td>
+               <td>Описание</td>
+               <td>Дата публикации</td>
+
+               {# Условие получается составным. #}
+               {% if perms.news.change_post or perms.news.delete_post %}
+               <td>Действия</td>
+               {% endif %}
+           </tr>
+
+    {% for post in category_news_list %}
+           <tr>
+               <td>{{  post.title }}</td>
+               <td>
+               <a href="{% url 'post_detail' post.id %}">{{ post.text|truncatechars:20 }}</a></td>
+               <td>{{ post.dateCreation|date:'d M Y ' }}</td>
+              <td>
+                  {# А здесь доступ для каждой ссылки теперь будем проверять отдельно #}
+                    {% if perms.news.change_post %}
+              <a href="{% url 'post_update' post.id %}">редактировать</a>
+                    {% endif %}
+                  {% if perms.news.delete_post %}
+              <a href="{% url 'post_delete' post.id %}">удалить</a>
+                    {% endif %}
+              </td>
+           </tr>
+           {% endfor %}
+
+       </table>
+   {% else %}
+       <h2>Новостей нет!</h2>
+   {% endif %}
+{# Информация о предыдущих страницах #}
+   {% if page_obj.has_previous %}
+       <a href="?page=1">1</a>
+       {% if page_obj.previous_page_number != 1 %}
+           ...
+           <a href="?page={{ page_obj.previous_page_number }}">{{ page_obj.previous_page_number }}</a>
+       {% endif %}
+   {% endif %}
+
+   {# Информация о текущей странице #}
+   {{ page_obj.number }}
+
+   {# Информация о следующих страницах #}
+   {% if page_obj.has_next %}
+       <a href="?page={{ page_obj.next_page_number }}">{{ page_obj.next_page_number }}</a>
+       {% if paginator.num_pages != page_obj.next_page_number %}
+           ...
+           <a href="?page={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+       {% endif %}
+   {% endif %}
+{% endblock content %}
